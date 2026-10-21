@@ -1,2 +1,0 @@
-Model,Accuracy,Balanced accuracy,Precision,Recall,F1,ROC-AUC,Brier,TestRows
-"Logistic Regression (calibrated, threshold=0.33)",0.645,0.6766,0.4563,0.7597,0.5702,0.7389,0.1835,1907

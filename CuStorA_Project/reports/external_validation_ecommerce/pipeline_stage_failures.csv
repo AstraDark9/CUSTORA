@@ -1,5 +1,0 @@
-Stage,Result
-src/data/cleaning.py: clean_dataset(),FAILED: KeyError: 'Age'
-src/features/engineering.py: create_features(),FAILED: KeyError: 'RegistrationDate'
-src/rfm/rfm.py: calculate_rfm_scores(),FAILED: KeyError: 'Recency'
-src/clustering/kmeans.py: prepare_data(),FAILED: ValueError: None of CLUSTER_FEATURES exist in the mapped data
