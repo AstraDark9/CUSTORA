@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CuStorA — Retention command center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+  // Theme before first paint: saved choice, else the system preference.
+  (function(){
+    var saved = localStorage.getItem('custora-theme');
+    var theme = saved || (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', theme);
+  })();
+</script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/command.css') }}">
+<script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</head>
+<body class="has-sidebar">
+
+{% set active = 'dashboard' %}{% set side_states = states %}
+{% include "_sidebar.html" %}
+
+{% macro money(v) -%}
+{%- if v >= 1000000 -%}{{ currency }}{{ "{:,.2f}".format(v/1000000) }}M
+{%- elif v >= 10000 -%}{{ currency }}{{ "{:,.1f}".format(v/1000) }}K
+{%- else -%}{{ currency }}{{ "{:,.0f}".format(v) }}{%- endif -%}
+{%- endmacro %}
+
+<div class="app-main">
+{% include "_topbar.html" %}
+
+<main class="page" id="main">
+
+  {% for category, message in get_flashed_messages(with_categories=true) %}
+  <div class="flash {{ category }}" role="status">{{ message }}</div>
+  {% endfor %}
+
+  {% if run_meta.data_kind == 'real_transactions' %}
+  <div class="source-banner real">
+    <div class="reveal" tabindex="0">
+      <span class="r-short"><strong>Real data:</strong> {{ run_meta.source_label }}.</span>
+      <span class="r-full"><strong>Real data:</strong> {{ run_meta.source_label }}. Scored as of <strong>{{ run_meta.as_of }}</strong>; “leaves” means <em>no purchase in the next {{ run_meta.window_days }} days</em>.
+      On a later, unseen period the model's ROC-AUC was <strong>{{ run_meta.test_roc_auc }}</strong>.
+      {% if run_meta.ledger and run_meta.ledger.rows_dropped_anonymous %}{{ "{:,}".format(run_meta.ledger.rows_dropped_anonymous) }} anonymous guest-checkout rows were excluded (they are not one customer).{% endif %}</span>
+    </div>
+    <a href="{{ url_for('evidence') }}">See the evidence &rarr;</a>
+  </div>
+  {% elif run_meta.data_kind == 'synthetic' %}
+  <div class="source-banner synthetic">
+    <div class="reveal" tabindex="0">
+      <span class="r-short"><strong>Synthetic demo data</strong>, for demonstration only.</span>
+      <span class="r-full"><strong>Synthetic demo data.</strong> These customers are generated, so scores are for demonstration only and are not evidence of accuracy.</span>
+    </div>
+    <a href="{{ url_for('upload_dataset') }}">Run on real data &rarr;</a>
+  </div>
+  {% endif %}
+
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Retention command center</div>
+      <h1>Who to save, and what it is worth</h1>
+      <p class="reveal" tabindex="0">
+        <span class="r-short">{{ "{:,}".format(total_customers) }} customers, ranked by the money you could lose in {{ window_days }} days.</span>
+        <span class="r-full">{{ "{:,}".format(total_customers) }} active customers, ranked by the money you stand to lose in the next {{ window_days }} days. Use the Risk × value matrix to pick a group, the Outreach planner to set how many people your team can contact, and export the list. Customers you have already reached are not in the queue.</span>
+      </p>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('customers_export_xlsx', limit=50, sort='loss') }}" download>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>
+      Download top-50 call list
+    </a>
+  </div>
+
+  <section class="kpis" aria-label="Key figures">
+    <div class="card kpi-card hero">
+      <div class="kpi-label">Expected revenue loss</div>
+      <div class="kpi-value">{{ money(expected_loss) }}</div>
+      <div class="kpi-sub reveal" tabindex="0">
+        <span class="r-short">next {{ window_days }} days · {{ "{:.0f}".format(loss_pct) }}% of normal spend</span>
+        <span class="r-full">over the next {{ window_days }} days: {{ "{:.0f}".format(loss_pct) }}% of the {{ money(stake_total) }} these customers normally spend in that time.</span>
+      </div>
+    </div>
+    <div class="card kpi-card">
+      <div class="kpi-label">Expected to leave</div>
+      <div class="kpi-value">≈ {{ "{:,.0f}".format(expected_leavers) }}</div>
+      <div class="kpi-sub reveal" tabindex="0">
+        <span class="r-short">{{ "{:.0f}".format(leavers_pct) }}% of customers</span>
+        <span class="r-full">{{ "{:.0f}".format(leavers_pct) }}% of customers; the sum of every customer's churn probability.</span>
+      </div>
+    </div>
+    <div class="card kpi-card">
+      <div class="kpi-label">Worth a personal touch</div>
+      <div class="kpi-value" id="kpiActNow">{{ "{:,}".format(act_now) }}</div>
+      <div class="kpi-sub reveal" tabindex="0">
+        <span class="r-short">high-priority customers still to contact</span>
+        <span class="r-full">high business priority, including <span id="kpiCritical">{{ "{:,}".format(critical_business) }}</span> critical (largest expected loss).{% if reached_total %} Customers you have already reached ({{ "{:,}".format(reached_total) }}) are not counted.{% endif %}</span>
+      </div>
+    </div>
+    <div class="card kpi-card">
+      <div class="kpi-label">How far to trust the ranking</div>
+      {% if gain %}
+        {% set g20 = (gain | selectattr('ContactedPct','equalto',20) | list | first) %}
+        <div class="kpi-value">{{ "{:.0f}".format(g20.ChurnersReachedPct) }}%</div>
+        <div class="kpi-sub reveal" tabindex="0">
+          <span class="r-short">of real leavers were in the riskiest 20%</span>
+          <span class="r-full">of customers who really left were in the riskiest 20% on the held-out period. <a href="{{ url_for('evidence') }}">Evidence</a></span>
+        </div>
+      {% elif test_auc %}
+        <div class="kpi-value">AUC {{ test_auc }}</div>
+        <div class="kpi-sub reveal" tabindex="0">
+          <span class="r-short">on unseen data</span>
+          <span class="r-full">on a held-out period. <a href="{{ url_for('evidence') }}">Evidence</a></span>
+        </div>
+      {% else %}
+        <div class="kpi-value">Demo</div>
+        <div class="kpi-sub reveal" tabindex="0">
+          <span class="r-short">Synthetic data, no accuracy claim</span>
+          <span class="r-full">Synthetic data: no accuracy claim. <a href="{{ url_for('upload_dataset') }}">Use real data</a></span>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="two-col">
+    <div class="card panel">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">Where the loss is concentrated</h2>
+          <p class="panel-sub reveal" tabindex="0"><span class="r-short">Segments ranked by money at risk.</span><span class="r-full">Segments ranked by expected loss, with the most common recommended play.</span></p>
+        </div>
+      </div>
+      <table class="seg-table">
+        <thead><tr><th>Segment</th><th class="num">Customers</th><th class="num">Avg risk</th><th class="num">Expected loss</th></tr></thead>
+        <tbody>
+        {% for s in segments %}
+          <tr>
+            <td><div class="seg-name">{{ s.name }}</div><div class="seg-play">{{ s.play }}</div><div class="bar" title="{{ '%.0f'|format(s.loss_share) }}% of all expected loss"><i style="width:{{ [s.loss_share,100]|min }}%"></i></div></td>
+            <td class="num">{{ "{:,}".format(s.customers) }}</td>
+            <td class="num">{{ "{:.0f}".format(s.avg_risk) }}%</td>
+            <td class="num">{{ money(s.expected_loss) }}<div class="seg-play">{{ "{:.0f}".format(s.loss_share) }}%</div></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card panel">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">What the model looks at</h2>
+          <p class="panel-sub reveal" tabindex="0"><span class="r-short">What moves risk the most.</span><span class="r-full">The behaviours that move predicted risk the most, across all customers. Open any customer to see their own reasons.</span></p>
+        </div>
+      </div>
+      {% if drivers %}
+        {% for d in drivers %}
+        <div class="driver"><span>{{ d.label }}</span><span class="pct">{{ d.share }}%</span><div class="bar"><i style="width:{{ d.share }}%"></i></div></div>
+        {% endfor %}
+      {% else %}
+        <p class="panel-sub">Run an analysis to see which behaviours drive risk.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="card table-card" id="priority-queue" style="padding:0;">
+    <div class="queue-tools">
+      <div style="flex:1 1 220px; min-width:180px;">
+        <h2 class="panel-title" style="margin:0;">Action queue</h2>
+      </div>
+      <button type="button" class="filter-pill" id="clearQuad" aria-label="Clear group filter"><span id="clearQuadText"></span> ✕</button>
+      <label class="search" for="customerSearch">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="customerSearch" type="text" placeholder="Search customer ID" autocomplete="off">
+      </label>
+      <select id="stateSelect" aria-label="Filter by customer state">
+        <option value="__all__">All states</option>
+        {% for name, count in states.items() %}<option value="{{ name }}">{{ name }} ({{ "{:,}".format(count) }})</option>{% endfor %}
+      </select>
+      <select id="sortSelect" aria-label="Sort order">
+        <option value="loss">Largest expected loss</option>
+        <option value="priority">Business priority</option>
+        <option value="risk">Highest risk</option>
+        <option value="stake">Most revenue at stake</option>
+      </select>
+    </div>
+    <table class="queue-table">
+      <thead><tr><th>Customer</th><th>Churn risk</th><th class="num">Revenue at stake</th><th class="num">Expected loss</th><th>Suggested action</th><th></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="mobile-cards" id="mobileCards"></div>
+    <div class="no-results" id="noResults">No customers match these filters.</div>
+    <div class="pager"><div id="pagerText">Loading…</div><button type="button" class="btn btn-ghost" id="moreBtn" style="padding:8px 14px; font-size:12.5px;">Show 50 more</button></div>
+  </section>
+</main>
+
+<footer class="page-foot">
+  <span class="reveal" tabindex="0">
+    <span class="r-short">Estimates from past behaviour. Analysis updated {{ dataset_updated }}.</span>
+    <span class="r-full">Revenue at stake = what a customer normally spends in {{ window_days }} days. Expected loss = churn probability × revenue at stake. Both are estimates from past behaviour; “win back” rates in the planner are your assumptions.
+    Analysis updated {{ dataset_updated }}.</span>
+  </span>
+</footer>
+</div>
+
+{% include "_drawer.html" %}
+
+<script>
+window.CMD = {
+  currency: {{ currency|tojson }},
+  total: {{ total_customers }},
+  windowDays: {{ window_days }},
+  gain: {{ (gain or [])|tojson }},
+  exportUrl: {{ url_for('customers_export_xlsx')|tojson }},
+  listUrl: {{ url_for('customers_list_json')|tojson }},
+  matrixUrl: {{ url_for('matrix_json')|tojson }},
+  quadMeta: {{ quad_meta|tojson }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/command.js') }}" defer></script>
+</body>
+</html>

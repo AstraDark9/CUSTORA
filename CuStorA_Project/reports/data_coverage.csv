@@ -1,0 +1,14 @@
+Field,Status,How it is obtained
+CustomerID,Observed,Your customer id column
+RegistrationDate,Derived,Date of the customer's first purchase
+LastPurchaseDate,Observed,Date of the customer's latest purchase
+TotalPurchases,Derived,Count of distinct orders
+TotalSpent,Derived,Sum of purchase amounts
+AverageOrderValue,Derived,Total spent / orders
+Returns,Not available,No returns found in the file
+EngagementScore,Derived,Percentile of orders in the last 90 days (not a survey score)
+Churn,Derived,"No purchase in the window after a cutoff date (computed, never guessed)"
+Age,Not available,A ledger does not contain it; not used
+Gender,Not available,A ledger does not contain it; not used
+Complaints,Not available,A ledger does not contain it; not used
+DiscountUsage,Not available,A ledger does not contain it; not used

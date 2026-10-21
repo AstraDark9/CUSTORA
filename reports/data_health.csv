@@ -1,0 +1,15 @@
+Metric,Value
+Rows before cleaning,2889
+Rows after cleaning,2889
+Rows removed,0
+Missing values detected (before cleaning),5778
+Duplicate customers removed,0
+Non-numeric values coerced to missing,0
+Negative values converted to missing,0
+Unrealistic ages cleared (outside 18-100),0
+Missing gender values found,0
+Invalid dates corrected,0
+Numeric values imputed with median,2889
+Dates imputed with median date,0
+"Missing churn labels (excluded from training, not guessed)",2889
+Missing values remaining after cleaning,5778

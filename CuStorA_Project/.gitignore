@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+data/runs/
+data/raw/customers_previous.csv
+data/raw/uploads/transactions_pending.csv
+data/raw/uploads/transactions_uploaded.csv
+data/reached_customers.json
+data/raw/uploads/customers_uploaded.csv
+data/raw/uploads/customers_pending_mapping.csv

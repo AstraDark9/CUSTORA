@@ -1,0 +1,85 @@
+{% macro money(v) -%}
+{%- if v >= 1000000 -%}{{ currency }}{{ "{:,.2f}".format(v/1000000) }}M
+{%- elif v >= 10000 -%}{{ currency }}{{ "{:,.1f}".format(v/1000) }}K
+{%- else -%}{{ currency }}{{ "{:,.0f}".format(v) }}{%- endif -%}
+{%- endmacro %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CuStorA — Risk × value matrix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+  // Theme before first paint: saved choice, else the system preference.
+  (function(){
+    var saved = localStorage.getItem('custora-theme');
+    var theme = saved || (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', theme);
+  })();
+</script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/command.css') }}">
+<script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</head>
+<body class="has-sidebar">
+
+{% set active = 'matrix' %}
+{% include "_sidebar.html" %}
+
+<div class="app-main">
+{% include "_topbar.html" %}
+
+<main class="page" id="main">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Analyse</div>
+      <h1>Risk × value matrix</h1>
+      <p class="reveal" tabindex="0">
+        <span class="r-short">Who is likely to leave, and what they are worth.</span>
+        <span class="r-full">Each dot is a customer. Right = more likely to leave; up = more revenue at stake. Pick a group to see what to do with it, then open those customers in the action queue. Click a dot to open that customer.{% if reached_total %} {{ "{:,}".format(reached_total) }} customers you have already reached are not shown.{% endif %}</span>
+      </p>
+    </div>
+  </div>
+
+  <div class="card panel" id="matrixPanel">
+    <div class="matrix-wrap">
+      <canvas id="matrix" role="img" aria-label="Scatter plot of every customer by churn probability and revenue at stake. Use the four group buttons below the chart for a keyboard-accessible version."></canvas>
+      <div class="matrix-tip" id="matrixTip"></div>
+    </div>
+    <div class="quads" role="group" aria-label="Customer groups">
+      {% for q in quadrants %}
+      <button type="button" class="quad" data-quad="{{ q.key }}" data-tone="{{ q.tone }}" data-play="{{ q.play }}" aria-pressed="false">
+        <span class="q-top"><span class="q-dot"></span>{{ q.title }}</span>
+        <span class="q-n">{{ "{:,}".format(q.customers) }}</span>
+        <span class="q-loss">{{ money(q.expected_loss) }} at risk · {{ "{:.0f}".format(q.loss_share) }}%</span>
+      </button>
+      {% endfor %}
+    </div>
+    <p class="quad-play" id="quadPlay" aria-live="polite">Select a group to see what to do with it.</p>
+    <p class="quad-link"><a class="btn btn-ghost" id="quadQueueLink" href="#" hidden>Open these customers in the action queue &rarr;</a></p>
+    <p class="matrix-note reveal" tabindex="0" id="matrixNote"><span class="r-short" id="matrixNoteShort"></span><span class="r-full" id="matrixNoteFull"></span></p>
+  </div>
+
+</main>
+</div>
+
+{% include "_drawer.html" %}
+
+<script>
+window.CMD = {
+  currency: {{ currency|tojson }},
+  windowDays: {{ run_meta.window_days or 90 }},
+  gain: [],
+  exportUrl: {{ url_for('customers_export_xlsx')|tojson }},
+  listUrl: {{ url_for('customers_list_json')|tojson }},
+  matrixUrl: {{ url_for('matrix_json')|tojson }},
+  dashboardUrl: {{ url_for('dashboard')|tojson }},
+  quadMeta: {{ quad_meta|tojson }}
+};
+</script>
+<script src="{{ url_for('static', filename='js/command.js') }}" defer></script>
+</body>
+</html>

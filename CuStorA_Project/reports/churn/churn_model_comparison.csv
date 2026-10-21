@@ -1,0 +1,4 @@
+Model,ValROC-AUC,ValPR-AUC,ValLift@10%,ValBrier,Selected
+Logistic Regression,0.764,0.6787,1.801,0.2032,True
+Gradient Boosting,0.7575,0.6621,1.742,0.2103,False
+Random Forest,0.7501,0.6626,1.684,0.2058,False

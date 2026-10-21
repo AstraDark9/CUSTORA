@@ -1,0 +1,28 @@
+{
+  "data_kind": "real_transactions",
+  "source_label": "UCI Online Retail (real UK retailer transactions, 2010-11)",
+  "currency": "\u00a3",
+  "as_of": "2011-12-09",
+  "window_days": 90,
+  "active_days": 90,
+  "customers_scored": 2889,
+  "customers_total": 4338,
+  "ledger": {
+    "rows_in": 531282,
+    "rows_dropped_missing": 0,
+    "rows_dropped_anonymous": 133358,
+    "anonymous_ids": [
+      "0"
+    ],
+    "return_rows": 0,
+    "rows_dropped_zero_amount": 40,
+    "rows_used": 397884,
+    "customers": 4338,
+    "first_date": "2010-12-01",
+    "last_date": "2011-12-09",
+    "span_days": 373
+  },
+  "model": "Logistic Regression",
+  "test_roc_auc": 0.7389,
+  "created_at": "2026-10-20 07:56:54"
+}

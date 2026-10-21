@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CuStorA — Outreach planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+  // Theme before first paint: saved choice, else the system preference.
+  (function(){
+    var saved = localStorage.getItem('custora-theme');
+    var theme = saved || (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', theme);
+  })();
+</script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/command.css') }}">
+<script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</head>
+<body class="has-sidebar">
+
+{% set active = 'planner' %}
+{% include "_sidebar.html" %}
+
+<div class="app-main">
+{% include "_topbar.html" %}
+
+<main class="page" id="main">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Analyse</div>
+      <h1>Outreach planner</h1>
+      <p class="reveal" tabindex="0">
+        <span class="r-short">How many customers to contact, and what it is worth.</span>
+        <span class="r-full">Contact the customers with the largest expected loss first. Set your capacity and costs to see what it buys.{% if reached_total %} {{ "{:,}".format(reached_total) }} customers you have already reached are left out.{% endif %}</span>
+      </p>
+    </div>
+  </div>
+
+  <div class="card panel planner" id="planner">
+    <div class="field">
+      <label for="capacity">Customers your team can contact <output id="capacityOut">100</output></label>
+      <input type="range" id="capacity" min="5" max="100" step="5" value="100">
+    </div>
+    <div class="field">
+      <label for="saveRate">Share of contacted leavers you can win back <output id="saveRateOut">20%</output></label>
+      <input type="range" id="saveRate" min="5" max="100" step="5" value="20">
+      <div class="hint reveal" tabindex="0"><span class="r-short">An assumption you can change.</span><span class="r-full">An assumption, not a prediction: use your own past win-back rate if you have one.</span></div>
+    </div>
+    <div class="field">
+      <label for="cost">Cost per contact (call, offer, discount)</label>
+      <div class="cost-row"><span class="mono">{{ currency }}</span><input type="number" id="cost" min="0" step="1" value="25"></div>
+    </div>
+    <div class="result" aria-live="polite">
+      <div><div class="r-label">Expected leavers reached</div><div class="r-val" id="rLeavers">–</div></div>
+      <div><div class="r-label">Expected loss covered</div><div class="r-val" id="rCovered">–</div></div>
+      <div><div class="r-label">Revenue you could keep</div><div class="r-val good" id="rSaved">–</div></div>
+      <div><div class="r-label">Net of contact cost</div><div class="r-val" id="rNet">–</div></div>
+      <div class="r-note reveal" tabindex="0" id="rEvidence"><span class="r-short" id="rEvidenceShort"></span><span class="r-full" id="rEvidenceFull"></span></div>
+    </div>
+    <div class="planner-actions">
+      <button type="button" class="btn btn-ghost" id="useBest">Use the best number for my cost</button>
+      <a class="btn btn-primary" id="exportLink" href="#" download>Export this list (Excel)</a>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+window.CMD = {
+  currency: {{ currency|tojson }},
+  windowDays: {{ window_days }},
+  gain: {{ (gain or [])|tojson }},
+  exportUrl: {{ url_for('customers_export_xlsx')|tojson }},
+  listUrl: {{ url_for('customers_list_json')|tojson }},
+  matrixUrl: {{ url_for('matrix_json')|tojson }},
+  dashboardUrl: {{ url_for('dashboard')|tojson }},
+  quadMeta: {}
+};
+</script>
+<script src="{{ url_for('static', filename='js/command.js') }}" defer></script>
+</body>
+</html>

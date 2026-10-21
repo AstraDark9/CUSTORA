@@ -1,0 +1,102 @@
+{# Shared sidebar. Set `active` ('dashboard' | 'matrix' | 'planner' | 'clusters' | 'reached' | 'upload' | 'evidence' | 'profile') before including.
+   Optional: `side_states` (dict of state -> count) adds a "Jump to a state" list; `sidebar_footer` overrides the footer. #}
+<aside class="sidebar" id="sidebar" aria-label="Main navigation">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+      <circle cx="15" cy="15" r="14" stroke="currentColor" stroke-width="1.4" style="color:var(--sidebar-accent)"/>
+      <path d="M4 15H9L11.5 8L15.5 22L18 15H26" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--sidebar-accent)"/>
+    </svg>
+    <div class="brand-name">CuSt<span>o</span>rA</div>
+    <button type="button" class="sidebar-close" id="sidebarClose" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-eyebrow">Act</div>
+    <nav class="side-tabs">
+      <a href="{{ url_for('dashboard') }}" class="{{ 'active' if active in ('dashboard','profile') else '' }}" {% if active == 'dashboard' %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8" fill="currentColor"/></svg>
+        Retention command center
+      </a>
+      <a href="{{ url_for('reached_page') }}" class="{{ 'active' if active == 'reached' else '' }}" {% if active == 'reached' %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.8"/></svg>
+        Reached customers
+        <span class="nav-badge" id="reachedBadge" {% if not reached_count %}hidden{% endif %}>{{ reached_count or 0 }}</span>
+      </a>
+    </nav>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-eyebrow">Analyse</div>
+    <nav class="side-tabs">
+      <a href="{{ url_for('risk_value_page') }}" class="{{ 'active' if active == 'matrix' else '' }}" {% if active == 'matrix' %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16h16"/><circle cx="9" cy="14" r="1.2"/><circle cx="13" cy="9" r="1.2"/><circle cx="17" cy="12" r="1.2"/><circle cx="16" cy="6.5" r="1.2"/></svg>
+        Risk × value matrix
+      </a>
+      <a href="{{ url_for('outreach_planner_page') }}" class="{{ 'active' if active == 'planner' else '' }}" {% if active == 'planner' %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+        Outreach planner
+      </a>
+      <a href="{{ url_for('clusters_page') }}" class="{{ 'active' if active == 'clusters' else '' }}" {% if active == 'clusters' %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="8" r="2.6"/><circle cx="17" cy="9" r="2.6"/><circle cx="11" cy="17" r="2.6"/></svg>
+        Customer clusters
+      </a>
+    </nav>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-eyebrow">Data</div>
+    <nav class="side-tabs">
+      <a href="{{ url_for('upload_dataset') }}" class="{{ 'active' if active == 'upload' else '' }}" {% if active == 'upload' %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4L7 9M12 4L17 9"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+        Upload &amp; data health
+      </a>
+    </nav>
+  </div>
+
+  {% if side_states %}
+  {% set order = ['Critical Retention','Critical Health','High Risk','Hidden Risk','Watch','Monitor','Stable'] %}
+  {% set tone = {'Critical Retention':'critical','Critical Health':'critical','High Risk':'risk','Hidden Risk':'risk','Watch':'watch','Monitor':'watch','Stable':'healthy'} %}
+  <div class="nav-group">
+    <div class="nav-eyebrow">Jump to a state</div>
+    <div class="side-states" role="group" aria-label="Filter the action queue by customer state">
+      {% for name in order if name in side_states %}
+      <button type="button" class="side-state-btn" data-jump-state="{{ name }}">
+        <span class="side-state-dot" style="background:var(--{{ tone[name] }});"></span>
+        <span class="side-state-name">{{ name }}</span>
+        <span class="side-state-count">{{ "{:,}".format(side_states[name]) }}</span>
+      </button>
+      {% endfor %}
+      {% for name, count in side_states.items() if name not in order %}
+      <button type="button" class="side-state-btn" data-jump-state="{{ name }}">
+        <span class="side-state-dot" style="background:var(--ink-faint);"></span>
+        <span class="side-state-name">{{ name }}</span>
+        <span class="side-state-count">{{ "{:,}".format(count) }}</span>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="nav-group">
+    <div class="nav-eyebrow">Trust</div>
+    <nav class="side-tabs">
+      <a href="{{ url_for('evidence') }}" class="{{ 'active' if active == 'evidence' else '' }}" {% if active == 'evidence' %}aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16"/><path d="M8 15l3-4 3 2 4-6"/></svg>
+        Model evidence
+      </a>
+    </nav>
+  </div>
+
+  <div class="sidebar-help">
+    <button type="button" class="help-btn" id="helpOpen" aria-haspopup="dialog" aria-controls="helpPanel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 114 2c-.9.6-1.6 1.1-1.6 2.1"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg>
+      Help desk
+    </button>
+  </div>
+
+  <div class="sidebar-footer">{{ sidebar_footer or 'Upload → Validate → Data health → Analyse' }}</div>
+</aside>
+<div class="sidebar-scrim" id="sidebarScrim"></div>
+{% include "_help.html" %}

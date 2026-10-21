@@ -1,0 +1,22 @@
+# Runtime dependencies for the CuStorA Flask app + pipeline (app.py,
+# pipeline.py, src/). This is everything `pip install -r requirements.txt`
+# needs to run the actual application end-to-end.
+#
+# Dev-only (pytest) and research-only (xgboost, lightgbm -- used solely by
+# scripts/run_temporal_validation_online_retail.py, never imported by the
+# app or pipeline) dependencies live in requirements-dev.txt and
+# requirements-research.txt instead, so installing the app doesn't pull in
+# two extra gradient-boosting libraries it never uses. See README.md
+# "Development vs. application artifacts" for the full picture.
+# Flask-WTF and Flask-Login are intentionally not listed -- login/CSRF
+# are temporarily disabled in app.py (see the "AUTHENTICATION --
+# DISABLED" comment there). Add them back here if you re-enable login.
+Flask==3.1.3
+pandas==3.0.2
+numpy==2.4.4
+scikit-learn==1.8.0
+scipy==1.17.1
+matplotlib==3.10.8
+joblib==1.5.3
+shap==0.52.0
+openpyxl==3.1.5

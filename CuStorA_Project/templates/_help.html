@@ -1,0 +1,228 @@
+{# Help desk. Included once from _sidebar.html, so every page that has the sidebar has it. #}
+<div class="help-overlay" id="helpOverlay"></div>
+<aside class="help-panel" id="helpPanel" role="dialog" aria-modal="true" aria-labelledby="helpTitle" aria-hidden="true">
+  <div class="help-head">
+    <div>
+      <h2 id="helpTitle">Help desk</h2>
+      <p>How CuStorA works, in plain words. Open any section.</p>
+    </div>
+    <button type="button" class="help-close" id="helpClose" aria-label="Close help">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <div class="help-body">
+
+    <details open>
+      <summary>Start here: the whole idea in 30 seconds</summary>
+      <div class="help-sec">
+        <p>CuStorA looks at how your customers have bought in the past, estimates <b>who is likely to stop buying</b>, works out <b>how much money that would cost you</b>, and tells your team <b>who to contact first</b>.</p>
+        <ol>
+          <li><b>Bring in your data</b> on <a href="{{ url_for('upload_dataset') }}">Upload &amp; data health</a>: a transaction history, a customer table, or the one-click real retail demo.</li>
+          <li><b>Run the analysis.</b> A 12-stage pipeline runs in the background and you can watch it. When it finishes, stay on that page and click any stage to see what happened to your data.</li>
+          <li><b>Open the <a href="{{ url_for('dashboard') }}">Retention command center</a></b> to see how much revenue is at risk and the action queue of customers to contact.</li>
+          <li><b>Explore</b> under <i>Analyse</i>: the risk × value matrix, the outreach planner and the customer clusters.</li>
+          <li><b>Contact people, then mark them as reached.</b> They move to <a href="{{ url_for('reached_page') }}">Reached customers</a> so nobody is chased twice.</li>
+          <li><b>Check the proof</b> on <a href="{{ url_for('evidence') }}">Model evidence</a> (at the bottom of this menu) whenever you want to know how far to trust the numbers.</li>
+        </ol>
+      </div>
+    </details>
+
+    <details>
+      <summary>What each page is for</summary>
+      <div class="help-sec">
+        <dl>
+          <dt>Retention command center</dt>
+          <dd>The main page. Four key figures, where the loss is concentrated by segment, what the model looks at, and the <b>action queue</b>: every customer still to contact. Search, filter by state, sort, and click a customer to open a side panel with the reasons and the suggested action.</dd>
+          <dt>Reached customers</dt>
+          <dd>Customers your team has already contacted. They are removed from the queue, the matrix and the planner. You can move anyone back.</dd>
+          <dt>Risk × value matrix</dt>
+          <dd>Every customer as a dot: further right = more likely to leave, higher up = more revenue at stake. Pick one of the four groups to see what to do with it.</dd>
+          <dt>Outreach planner</dt>
+          <dd>Set how many customers your team can contact, how many of them you could win back, and what each contact costs. It shows what that buys, and exports the call list.</dd>
+          <dt>Customer clusters</dt>
+          <dd>A map of your customers grouped by similar buying behaviour, with a short profile of each group.</dd>
+          <dt>Upload &amp; data health</dt>
+          <dd>Bring in data, check it, and start an analysis.</dd>
+          <dt>Model evidence</dt>
+          <dd>How the model was tested and how accurate it really is, including its limits.</dd>
+        </dl>
+      </div>
+    </details>
+
+    <details>
+      <summary>Words used in the app</summary>
+      <div class="help-sec">
+        <dl>
+          <dt>Churn / chance of leaving</dt>
+          <dd>The model's estimate of how likely a customer is to stop buying. With a transaction file, "leaves" means <i>no purchase in the next N days</i> (N is the window shown on the dashboard).</dd>
+          <dt>Revenue at stake</dt>
+          <dd>What a customer normally spends in that window.</dd>
+          <dt>Expected loss</dt>
+          <dd>Chance of leaving × revenue at stake. It is the number used to rank who to contact first.</dd>
+          <dt>Win-back rate (planner)</dt>
+          <dd>The share of contacted leavers you think you can keep. It is <b>your assumption</b>, not a prediction. Use your own past results if you have them.</dd>
+          <dt>Segment</dt>
+          <dd>A group of customers who buy in a similar way, found automatically and given a readable name such as "High-Value, Frequent Customers".</dd>
+          <dt>RFM</dt>
+          <dd>Recency (how recently they bought), Frequency (how often) and Monetary (how much). Each customer gets a 1 to 5 score on each.</dd>
+          <dt>Relationship health</dt>
+          <dd>A 0 to 100 score for how healthy the relationship looks, separate from the churn chance. It is Healthy, At Risk or Critical.</dd>
+          <dt>ROC-AUC</dt>
+          <dd>How well the model ranks leavers above stayers on customers it never saw. 0.5 is a coin flip and 1.0 is perfect. Around 0.75 is realistic for churn.</dd>
+        </dl>
+      </div>
+    </details>
+
+    <details>
+      <summary>The four groups in the risk × value matrix</summary>
+      <div class="help-sec">
+        <p>Two dashed lines split the chart. The "likely to leave" line is the model's medium-risk cut-off, and the "high value" line marks the top third of customers by revenue at stake.</p>
+        <table>
+          <thead><tr><th>Group</th><th>Who</th><th>Play</th></tr></thead>
+          <tbody>
+            <tr><td><b>Save now</b></td><td>High value, likely to leave</td><td>Personal outreach this week</td></tr>
+            <tr><td><b>Protect</b></td><td>High value, loyal</td><td>Keep the relationship warm</td></tr>
+            <tr><td><b>Win back cheaply</b></td><td>Likely to leave, modest value</td><td>Automated offers, no calls</td></tr>
+            <tr><td><b>Leave alone</b></td><td>Modest value, loyal</td><td>Standard service</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details>
+      <summary>Customer states and priorities</summary>
+      <div class="help-sec">
+        <p>A <b>customer state</b> combines the chance of leaving with relationship health.</p>
+        <table>
+          <thead><tr><th>Chance of leaving</th><th>Health</th><th>State</th></tr></thead>
+          <tbody>
+            <tr><td rowspan="3">High</td><td>Critical</td><td>Critical Retention</td></tr>
+            <tr><td>At Risk</td><td>High Risk</td></tr>
+            <tr><td>Healthy</td><td>Hidden Risk</td></tr>
+            <tr><td rowspan="3">Medium</td><td>Critical</td><td>Critical Health</td></tr>
+            <tr><td>At Risk</td><td>Watch</td></tr>
+            <tr><td>Healthy</td><td>Monitor</td></tr>
+            <tr><td rowspan="3">Low</td><td>Critical</td><td>Critical Health</td></tr>
+            <tr><td>At Risk</td><td>Watch</td></tr>
+            <tr><td>Healthy</td><td>Stable</td></tr>
+          </tbody>
+        </table>
+        <p>The <b>business priority</b> adds how valuable the customer is. <i>Critical</i> is a high-value customer with a high chance of leaving, or anyone in the top 1% of expected loss. <i>High</i> covers valuable customers at medium risk, medium-value customers at high risk, and customers in a Critical state. <i>Medium</i> and <i>Normal</i> are the rest.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>The 12 stages of the analysis</summary>
+      <div class="help-sec">
+        <ol>
+          <li><b>Cleaning</b>: removes duplicates, fixes broken rows and formats.</li>
+          <li><b>Feature Engineering</b>: turns raw purchases into signals such as days since last purchase.</li>
+          <li><b>RFM Analysis</b>: scores each customer on recency, frequency and spend.</li>
+          <li><b>PCA</b>: squeezes the signals into a 2-D map for the clusters picture.</li>
+          <li><b>K-Means Clustering</b>: finds groups of customers who behave alike.</li>
+          <li><b>Segment Naming</b>: gives each group a readable name.</li>
+          <li><b>Churn Prediction</b>: trains (or reuses) a model and scores every customer's chance of leaving.</li>
+          <li><b>Relationship Health</b>: scores how healthy each relationship looks.</li>
+          <li><b>SHAP Explainability</b>: finds which behaviours push predictions up or down.</li>
+          <li><b>Customer State</b>: combines chance of leaving and health into one state.</li>
+          <li><b>Retention Recommendations</b>: suggests one action per customer.</li>
+          <li><b>CLV and Business Metrics</b>: works out money at stake and ranks who needs attention first.</li>
+        </ol>
+        <p>After a run finishes, click <b>stay here</b> on the progress page, then click any stage to see what it did to your data.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Marking customers as reached</summary>
+      <div class="help-sec">
+        <p>When you have contacted a customer, use <b>Mark as reached</b> in the customer side panel, on their profile, or on their row in the action queue.</p>
+        <ul>
+          <li>They disappear from the action queue, the matrix and the planner, and the call-list export, so they are not chased again.</li>
+          <li>They appear on <b>Reached customers</b> with the date and what their risk and suggested action were at that moment.</li>
+          <li>Marked by mistake? Use <b>Move back to queue</b> on the Reached page.</li>
+          <li>The reached list belongs to the dataset you analysed. If you analyse a different dataset, the old list is not applied to it.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details>
+      <summary>Tips for reading the screens</summary>
+      <div class="help-sec">
+        <ul>
+          <li>Short text with a small <b>ⓘ</b> shows more when you <b>hover</b> over it (or tap it on a touch screen). Move away and it shrinks back.</li>
+          <li>The sun/moon button at the top right switches light and dark mode.</li>
+          <li>On the Risk × value matrix, hover a dot for its numbers and click it to open the customer.</li>
+          <li>Under the sidebar's <i>Jump to a state</i> list, click a state to filter the action queue.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details>
+      <summary>Good to know (honest limits)</summary>
+      <div class="help-sec">
+        <ul>
+          <li>Every figure is an <b>estimate from past behaviour</b>. Use it to decide who to contact first, not as a certainty about one person.</li>
+          <li><b>Synthetic demo data</b> is made up. It only shows that the software runs, and its accuracy numbers are not evidence. A banner on the dashboard always says which kind of data you are looking at.</li>
+          <li>The clusters map is a 2-D simplification, so groups can overlap on it even when they differ clearly in the numbers.</li>
+          <li>The full test results and limitations are on <a href="{{ url_for('evidence') }}">Model evidence</a>.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details>
+      <summary>Common questions</summary>
+      <div class="help-sec">
+        <dl>
+          <dt>A customer I expected is missing from the queue.</dt>
+          <dd>They have probably been marked as reached. Look on Reached customers and move them back if needed.</dd>
+          <dt>Where did the matrix and the planner go?</dt>
+          <dd>Each has its own page under <i>Analyse</i> in the sidebar.</dd>
+          <dt>Why do I not see "How far to trust the ranking" numbers?</dt>
+          <dd>Those come from testing on a later period, which needs a transaction file. With a customer table or the synthetic demo, that test is not available.</dd>
+          <dt>The analysis page says it is running, how long will it take?</dt>
+          <dd>Usually under a minute for the demo. Larger files take longer. The page updates itself, so there is no need to refresh.</dd>
+        </dl>
+      </div>
+    </details>
+
+  </div>
+</aside>
+
+<script>
+(function () {
+  var panel = document.getElementById('helpPanel');
+  var overlay = document.getElementById('helpOverlay');
+  var openBtn = document.getElementById('helpOpen');
+  var closeBtn = document.getElementById('helpClose');
+  if (!panel || !openBtn) return;
+  var lastFocus = null;
+
+  function open() {
+    lastFocus = document.activeElement;
+    panel.classList.add('open'); overlay.classList.add('open');
+    panel.setAttribute('aria-hidden', 'false');
+    closeBtn.focus();
+  }
+  function close() {
+    panel.classList.remove('open'); overlay.classList.remove('open');
+    panel.setAttribute('aria-hidden', 'true');
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  openBtn.addEventListener('click', open);
+  closeBtn.addEventListener('click', close);
+  overlay.addEventListener('click', close);
+  document.addEventListener('keydown', function (e) {
+    if (!panel.classList.contains('open')) return;
+    if (e.key === 'Escape') { close(); return; }
+    if (e.key === 'Tab') {
+      var f = Array.prototype.slice.call(panel.querySelectorAll('a[href], button:not([disabled]), summary'));
+      if (!f.length) return;
+      if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+      else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+    }
+  });
+  // Links inside the help desk go to other pages: close first so it never reopens half-shown.
+  panel.querySelectorAll('a[href]').forEach(function (a) { a.addEventListener('click', close); });
+})();
+</script>

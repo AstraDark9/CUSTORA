@@ -1,0 +1,3 @@
+Model,Stage,Brier
+Logistic Regression,Before calibration,0.1307
+Logistic Regression,After calibration,0.0906

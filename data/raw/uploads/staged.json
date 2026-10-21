@@ -1,0 +1,1 @@
+{"kind": "transactions", "path": "data\\external\\online_retail_transactions_uci.csv", "mapping": {"customer_id": "CustomerID", "date": "InvoiceDate", "amount": null, "quantity": "Quantity", "unit_price": "UnitPrice", "invoice": "InvoiceNo"}, "window_days": 90, "active_days": 90, "label": "UCI Online Retail (real UK retailer transactions, 2010-11)", "currency": "\u00a3"}

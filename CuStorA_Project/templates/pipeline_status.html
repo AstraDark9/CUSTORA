@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CuStorA — Running analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+  (function(){
+    var saved = localStorage.getItem('custora-theme');
+    var theme = saved || (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', theme);
+  })();
+</script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+<style>
+  body{
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .brand{display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:28px;}
+  .brand-mark{width:28px;height:28px;}
+  .brand-name{font-family:'Fraunces',serif; font-size:19px; font-weight:600;}
+  .brand-name span{color:#2B6E63;}
+  [data-theme="dark"] .brand-name span{color:#5FCB8B;}
+
+  .card{
+    width:100%; max-width:560px; padding:30px 28px;
+  }
+  .card h1{font-family:'Fraunces',serif; font-size:19px; margin:0 0 6px;}
+  .card p.sub{font-size:12.5px; color:var(--ink-faint); margin:0 0 22px;}
+
+  .stage-list{list-style:none; margin:0; padding:0;}
+  .stage-list li{
+    display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:9px 0;
+    border-bottom:1px solid var(--line); font-size:13.5px;
+    transition:opacity .2s ease;
+  }
+  .stage-list li:last-child{border-bottom:none;}
+  .stage-name{flex:1;}
+  .stage-time{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-faint);}
+
+  .stagemark{width:16px; height:16px; border-radius:50%; flex-shrink:0; border:1.5px solid var(--line); display:flex; align-items:center; justify-content:center; transition:transform .25s cubic-bezier(.34,1.56,.64,1), background .2s ease, border-color .2s ease;}
+  .stagemark svg{width:10px; height:10px; display:none;}
+  .stagemark.running{border-color:var(--accent); animation:pulse 1s ease-in-out infinite;}
+  .stagemark.ok{border-color:var(--healthy); background:var(--healthy); transform:scale(1.15);}
+  .stagemark.ok svg{display:block; stroke:#fff;}
+  .stagemark.failed{border-color:var(--critical); background:var(--critical);}
+  .stagemark.failed svg{display:block; stroke:#fff;}
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:.35;}}
+
+  .banner{padding:12px 14px; font-size:13px;}
+  .banner.running{background:var(--accent-soft); color:var(--accent-ink);}
+  .banner.failed{background:var(--critical-soft); color:var(--critical);}
+  .banner.completed{background:var(--healthy-soft); color:var(--healthy);}
+  .stage-count{font-size:12px; color:var(--ink-faint); margin-bottom:14px;}
+
+  .progress-track{
+    width:100%; height:7px; border-radius:99px; background:var(--surface-alt);
+    overflow:hidden; margin-bottom:8px; position:relative;
+  }
+  .progress-fill{
+    height:100%; border-radius:99px; background:var(--accent);
+    transition:width 0.6s cubic-bezier(.4,0,.2,1); width:0%; position:relative; overflow:hidden;
+  }
+  .progress-fill::after{
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+    width:60px; animation:shimmer 1.4s linear infinite;
+  }
+  @keyframes shimmer{from{transform:translateX(-80px);} to{transform:translateX(200px);}}
+  .elapsed{font-size:11.5px; color:var(--ink-faint); font-family:'JetBrains Mono',monospace; margin:-4px 0 14px;}
+
+  /* ---- spotlight: what's happening right now, in plain language ---- */
+  .spotlight{
+    display:flex; align-items:flex-start; gap:12px; background:var(--surface-alt);
+    border-radius:10px; padding:13px 14px; margin-bottom:16px; min-height:52px;
+  }
+  .spotlight-icon{
+    width:30px; height:30px; border-radius:8px; background:var(--accent-soft); color:var(--accent-ink);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .spotlight-icon svg{width:16px; height:16px;}
+  .spotlight-title{font-size:13px; font-weight:700; margin-bottom:2px; display:flex; align-items:center; gap:6px;}
+  .spotlight-dots span{animation:dotfade 1.4s infinite; opacity:.2;}
+  .spotlight-dots span:nth-child(2){animation-delay:.2s;}
+  .spotlight-dots span:nth-child(3){animation-delay:.4s;}
+  @keyframes dotfade{0%,80%,100%{opacity:.2;} 40%{opacity:1;}}
+  .spotlight-desc{font-size:12px; color:var(--ink-soft); line-height:1.45;}
+  .spotlight.done .spotlight-icon{background:var(--healthy-soft); color:var(--healthy);}
+  .spotlight.failed .spotlight-icon{background:var(--critical-soft); color:var(--critical);}
+
+  .error-detail{
+    font-family:'JetBrains Mono',monospace; font-size:11.5px; background:var(--surface-alt);
+    border-radius:8px; padding:10px 12px; margin-top:12px; white-space:pre-wrap; word-break:break-word;
+  }
+
+  .actions{margin-top:20px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+  .btn{
+    font-weight:700; font-size:13px;
+    background:var(--accent-ink); color:#fff;
+  }
+  .countdown-note{font-size:11.5px; color:var(--ink-faint);}
+  .countdown-note button{
+    background:none; border:none; padding:0; margin-left:4px; font:inherit; color:var(--accent-ink);
+    font-weight:600; text-decoration:underline; cursor:pointer;
+  }
+
+  /* success ring flourish behind the completed checkmark */
+  .success-pop{display:flex; justify-content:center; margin:2px 0 4px; height:0; overflow:visible;}
+  .success-pop svg{width:0; height:0;}
+  .success-pop.show{height:auto;}
+  .success-pop.show svg{width:54px; height:54px; animation:popin .4s cubic-bezier(.34,1.56,.64,1);}
+  .success-pop circle{stroke:var(--healthy); opacity:.35;}
+  .success-pop path{stroke:var(--healthy); stroke-dasharray:24; stroke-dashoffset:24; animation:draw .4s ease .15s forwards;}
+  @keyframes popin{from{transform:scale(.4); opacity:0;} to{transform:scale(1); opacity:1;}}
+  @keyframes draw{to{stroke-dashoffset:0;}}
+
+  /* ---- after the run: click a stage to see what happened to your data ---- */
+  .stage-hint{font-size:12px; color:var(--ink-faint); margin:0 0 8px;}
+  .stage-head{display:flex; align-items:center; gap:10px; width:100%;}
+  .stage-head[role="button"]{cursor:pointer; border-radius:8px;}
+  .stage-head[role="button"]:hover .stage-name{color:var(--accent-ink);}
+  .stage-head:focus-visible{outline:2px solid var(--accent); outline-offset:3px;}
+  .stage-chevron{width:14px; height:14px; flex-shrink:0; color:var(--ink-faint); transition:transform .18s ease;}
+  .stage-list li.open .stage-chevron{transform:rotate(90deg);}
+  .stage-detail{flex-basis:100%; background:var(--surface-alt); border-radius:10px; padding:12px 14px; margin:2px 0 4px 26px; font-size:12.5px; color:var(--ink-soft); line-height:1.5;}
+  .stage-detail[hidden]{display:none;}
+  .sd-headline{margin:0 0 6px; color:var(--ink); font-weight:600;}
+  .sd-meta{margin:0 0 10px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-faint);}
+  .sd-stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; margin:8px 0;}
+  .sd-stat{background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:8px 10px;}
+  .sd-stat-v{display:block; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:13px; color:var(--ink); word-break:break-word;}
+  .sd-stat-l{display:block; font-size:11px; color:var(--ink-faint); margin-top:2px;}
+  .sd-bar-row{display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1.6fr) auto; align-items:center; gap:8px; margin:5px 0; font-size:12px;}
+  .sd-bar-label{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink);}
+  .sd-bar-track{height:6px; border-radius:99px; background:var(--line); overflow:hidden;}
+  .sd-bar-fill{height:100%; border-radius:99px; background:var(--accent);}
+  .sd-bar-text{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-faint); white-space:nowrap;}
+  .sd-chips{display:flex; flex-wrap:wrap; gap:6px; margin:8px 0;}
+  .sd-chip{font-family:'JetBrains Mono',monospace; font-size:11px; padding:2px 8px; border-radius:99px; background:var(--surface); border:1px solid var(--line); color:var(--ink-soft);}
+  .sd-note{margin:8px 0 0; font-size:11.5px; color:var(--ink-faint);}
+  @media (max-width:480px){ .stage-detail{margin-left:0;} .sd-bar-row{grid-template-columns:1fr auto;} .sd-bar-track{grid-column:1 / -1; order:3;} }
+</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+</head>
+<body>
+
+<div>
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 30 30" fill="none"><circle cx="15" cy="15" r="14" stroke="#2B6E63" stroke-width="1.4"/><path d="M4 15H9L11.5 8L15.5 22L18 15H26" stroke="#2B6E63" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="brand-name">CuSt<span>o</span>rA</div>
+  </div>
+
+  <div class="card">
+    <h1>Running analysis</h1>
+    <p class="sub">The 12-stage pipeline runs in the background — this page updates itself, no need to refresh.</p>
+
+    <div class="success-pop" id="successPop">
+      <svg viewBox="0 0 60 60" fill="none">
+        <circle cx="30" cy="30" r="26" stroke-width="3"/>
+        <path d="M18 31l8 8 16-18" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <div id="banner" class="banner running">Starting…</div>
+    <div class="progress-track"><div id="progressFill" class="progress-fill" style="width:0%"></div></div>
+    <div id="stageCount" class="stage-count"></div>
+    <div id="elapsed" class="elapsed">Elapsed: 0:00</div>
+
+    <div class="spotlight running" id="spotlight">
+      <div class="spotlight-icon" id="spotlightIcon"></div>
+      <div>
+        <div class="spotlight-title"><span id="spotlightTitle">Getting started</span><span class="spotlight-dots" id="spotlightDots"><span>.</span><span>.</span><span>.</span></span></div>
+        <div class="spotlight-desc" id="spotlightDesc">Spinning up the pipeline and reading your uploaded data.</div>
+      </div>
+    </div>
+
+    <ul class="stage-list" id="stageList" aria-live="polite">
+      {% for name in initial_stage_names %}
+      <li data-stage="{{ name }}">
+        <span class="stagemark"><svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></span>
+        <span class="stage-name">{{ name }}</span>
+        <span class="stage-time"></span>
+      </li>
+      {% endfor %}
+    </ul>
+
+    <div id="errorDetail"></div>
+
+    <div class="actions" id="actions" style="display:none;"></div>
+  </div>
+</div>
+
+<script>
+  // Short, plain-language description of each stage, shown in the
+  // "spotlight" panel while that stage is the one currently running.
+  // Keys must match PIPELINE_STAGES in pipeline.py exactly.
+  var STAGE_INFO = {
+    'Cleaning': {
+      desc: 'Removing duplicates, fixing malformed rows, and standardizing formats across your dataset.',
+      icon: '<path d="M3 3l18 18M3 21L21 3"/>'
+    },
+    'Feature Engineering': {
+      desc: 'Deriving recency, frequency, monetary, and engagement signals from raw transaction history.',
+      icon: '<path d="M4 19h16M4 15l4-5 4 3 4-7 4 4" stroke-linecap="round" stroke-linejoin="round"/>'
+    },
+    'RFM Analysis': {
+      desc: 'Scoring every customer on Recency, Frequency, and Monetary value — the classic segmentation base.',
+      icon: '<path d="M4 20V10M12 20V4M20 20v-7" stroke-linecap="round"/>'
+    },
+    'PCA': {
+      desc: 'Compressing correlated features into a handful of components so clustering stays clean and stable.',
+      icon: '<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>'
+    },
+    'K-Means Clustering': {
+      desc: 'Grouping customers into behaviorally similar clusters based on their RFM and engagement profile.',
+      icon: '<circle cx="8" cy="8" r="2.5"/><circle cx="17" cy="9" r="2.5"/><circle cx="11" cy="17" r="2.5"/>'
+    },
+    'Segment Naming': {
+      desc: 'Turning anonymous clusters into human-readable segment names your team can act on.',
+      icon: '<path d="M4 6h16M4 12h10M4 18h7" stroke-linecap="round"/>'
+    },
+    'Churn Prediction': {
+      desc: 'Running the trained model to estimate every customer\u2019s probability of churning.',
+      icon: '<path d="M12 3v10M12 21a8 8 0 100-16" stroke-linecap="round"/>'
+    },
+    'Relationship Health': {
+      desc: 'Scoring the overall health of each customer relationship, not just their churn risk.',
+      icon: '<path d="M12 20s-7-4.35-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.65-7 10-7 10z" stroke-linejoin="round"/>'
+    },
+    'SHAP Explainability': {
+      desc: 'Computing which factors are pushing each churn prediction up or down, so it isn\u2019t a black box.',
+      icon: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>'
+    },
+    'Customer State': {
+      desc: 'Classifying customers into lifecycle states — new, active, lapsing, dormant, and more.',
+      icon: '<path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>'
+    },
+    'Retention Recommendations': {
+      desc: 'Matching each at-risk customer to a concrete recommended action for your team.',
+      icon: '<path d="M9 18h6M10 21h4M12 3a6 6 0 00-4 10.5c.5.5 1 1.3 1 2.5h6c0-1.2.5-2 1-2.5A6 6 0 0012 3z" stroke-linecap="round" stroke-linejoin="round"/>'
+    },
+    'CLV and Business Metrics': {
+      desc: 'Calculating lifetime value for every customer and ranking who needs attention first.',
+      icon: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke-linecap="round"/>'
+    }
+  };
+  var DEFAULT_ICON = '<circle cx="12" cy="12" r="9"/>';
+
+  var POLL_MS = 1200;
+  // Safety rails so this page can never poll the server forever:
+  // a wall-clock ceiling on the whole run, and a ceiling on how many
+  // failed requests in a row are tolerated before giving up.
+  var MAX_POLL_MS = 30 * 60 * 1000;
+  var MAX_CONSECUTIVE_ERRORS = 10;
+  var consecutiveErrors = 0;
+  var lastDashboardUrl = null;
+  var stageListEl = document.getElementById('stageList');
+  var bannerEl = document.getElementById('banner');
+  var stageCountEl = document.getElementById('stageCount');
+  var progressFillEl = document.getElementById('progressFill');
+  var elapsedEl = document.getElementById('elapsed');
+  var errorEl = document.getElementById('errorDetail');
+  var actionsEl = document.getElementById('actions');
+  var spotlightEl = document.getElementById('spotlight');
+  var spotlightIconEl = document.getElementById('spotlightIcon');
+  var spotlightTitleEl = document.getElementById('spotlightTitle');
+  var spotlightDescEl = document.getElementById('spotlightDesc');
+  var spotlightDotsEl = document.getElementById('spotlightDots');
+  var successPopEl = document.getElementById('successPop');
+  var stopped = false;
+  var startedAt = Date.now();
+  var lastSpotlightStage = null;
+  var redirectTimer = null;
+
+  function formatElapsed(ms) {
+    var totalSeconds = Math.floor(ms / 1000);
+    var minutes = Math.floor(totalSeconds / 60);
+    var seconds = totalSeconds % 60;
+    return minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
+  }
+
+  setInterval(function() {
+    if (stopped) return;
+    elapsedEl.textContent = 'Elapsed: ' + formatElapsed(Date.now() - startedAt);
+  }, 1000);
+
+  function setSpotlight(stageName, mode, customDesc) {
+    // mode: 'running' | 'done' | 'failed'
+    spotlightEl.className = 'spotlight ' + mode;
+    var info = STAGE_INFO[stageName] || {};
+    spotlightIconEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + (info.icon || DEFAULT_ICON) + '</svg>';
+    spotlightTitleEl.textContent = mode === 'running' ? ('Now running: ' + stageName) : stageName;
+    spotlightDescEl.textContent = customDesc || info.desc || '';
+    spotlightDotsEl.style.display = mode === 'running' ? '' : 'none';
+  }
+
+  function renderStages(stages, overallStatus) {
+    if (!stages || !stages.length) return;
+    var sawSkipped = false;
+    var completedCount = 0;
+    var runningStageName = null;
+    var failedStageName = null;
+    stages.forEach(function(stage) {
+      if (stage.Status === 'OK') completedCount++;
+      if (stage.Status === 'FAILED') failedStageName = stage.Stage;
+      var li = stageListEl.querySelector('li[data-stage="' + CSS.escape(stage.Stage) + '"]');
+      if (!li) return;
+      var mark = li.querySelector('.stagemark');
+      var time = li.querySelector('.stage-time');
+
+      if (stage.Status === 'OK') {
+        mark.className = 'stagemark ok';
+        if (stage.Seconds !== undefined && stage.Seconds !== null && stage.Seconds !== '') {
+          time.textContent = Number(stage.Seconds).toFixed(2) + 's';
+        }
+      } else if (stage.Status === 'FAILED') {
+        mark.className = 'stagemark failed';
+      } else {
+        // SKIPPED: either not reached yet, or (if this is the first
+        // SKIPPED row and the run is still going) currently running.
+        if (!sawSkipped && overallStatus === 'running') {
+          mark.className = 'stagemark running';
+          runningStageName = stage.Stage;
+        } else {
+          mark.className = 'stagemark';
+        }
+        sawSkipped = true;
+      }
+    });
+    var percent = Math.round((completedCount / stages.length) * 100);
+    progressFillEl.style.width = percent + '%';
+    if (overallStatus !== 'completed') {
+      stageCountEl.textContent = completedCount + ' of ' + stages.length + ' stages complete (' + percent + '%)';
+    } else {
+      stageCountEl.textContent = '';
+    }
+
+    // Keep the spotlight panel in sync with whichever stage is actually
+    // running right now, so the wait feels concrete rather than generic.
+    if (overallStatus === 'failed' && failedStageName) {
+      setSpotlight(failedStageName, 'failed', 'This stage hit an error — see the details below.');
+    } else if (overallStatus === 'completed') {
+      setSpotlight('All 12 stages finished', 'done', 'Your dashboard is ready to explore.');
+    } else if (runningStageName && runningStageName !== lastSpotlightStage) {
+      lastSpotlightStage = runningStageName;
+      setSpotlight(runningStageName, 'running');
+    }
+  }
+
+  function finish(url) {
+    // Single exit point. Navigating away is what actually ends the
+    // polling loop, so it must not depend on anything else succeeding.
+    stopped = true;
+    window.location.href = url;
+  }
+
+  function startRedirectCountdown(url, seconds) {
+    // The button was navigating the user away on its own after a fixed
+    // 1.2s delay regardless of whether they'd clicked it, which made the
+    // "Go to dashboard" button feel pointless. This makes the same
+    // behavior visible and cancellable: clicking the button still jumps
+    // there immediately (it's a normal link), but a person who wants to
+    // linger and check stage timings can say so instead of racing a
+    // timer they can't see.
+    var remaining = seconds;
+    var noteEl = document.getElementById('countdownNote');
+    var countEl = document.getElementById('countdownSeconds');
+    function tick() {
+      remaining -= 1;
+      if (remaining <= 0) {
+        finish(url);
+        return;
+      }
+      if (countEl) countEl.textContent = remaining;
+      redirectTimer = setTimeout(tick, 1000);
+    }
+    if (countEl) countEl.textContent = remaining;
+    if (noteEl) noteEl.style.display = '';
+    redirectTimer = setTimeout(tick, 1000);
+  }
+
+  function cancelRedirectCountdown() {
+    if (redirectTimer) {
+      clearTimeout(redirectTimer);
+      redirectTimer = null;
+    }
+    var noteEl = document.getElementById('countdownNote');
+    if (noteEl) noteEl.style.display = 'none';
+  }
+
+  function giveUp(message, url) {
+    stopped = true;
+    bannerEl.className = 'banner failed';
+    bannerEl.textContent = message;
+    stageCountEl.textContent = '';
+    actionsEl.style.display = 'flex';
+    actionsEl.innerHTML = '<a class="btn" href="' + url + '">Continue</a>';
+  }
+
+  // ---------------------------------------------------------------
+  // After the run: click any stage to see what happened to your data.
+  // Details come from /run-analysis/stage.json (read from the files
+  // this run wrote). Everything from the server is rendered as text.
+  // ---------------------------------------------------------------
+  var STAGE_DETAIL_URL = '{{ url_for("pipeline_stage_detail") }}';
+  var stageCache = {};
+
+  function mk(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined && text !== null) n.textContent = text;
+    return n;
+  }
+
+  function renderStageDetail(panel, d) {
+    panel.textContent = '';
+    panel.appendChild(mk('p', 'sd-headline', d.headline || ''));
+    if (d.available === false) return;
+
+    var meta = [];
+    if (d.rows !== undefined && d.rows !== null) meta.push(Number(d.rows).toLocaleString() + ' customers');
+    if (d.seconds !== undefined && d.seconds !== null) meta.push(Number(d.seconds).toFixed(1) + 's');
+    if (meta.length) panel.appendChild(mk('p', 'sd-meta', meta.join(' \u00b7 ')));
+
+    if (d.stats && d.stats.length) {
+      var stats = mk('div', 'sd-stats');
+      d.stats.forEach(function (st) {
+        var box = mk('div', 'sd-stat');
+        box.appendChild(mk('span', 'sd-stat-v', st.value));
+        box.appendChild(mk('span', 'sd-stat-l', st.label));
+        stats.appendChild(box);
+      });
+      panel.appendChild(stats);
+    }
+    if (d.bars && d.bars.length) {
+      var bars = mk('div', 'sd-bars');
+      d.bars.forEach(function (b) {
+        var row = mk('div', 'sd-bar-row');
+        row.appendChild(mk('span', 'sd-bar-label', b.label));
+        var track = mk('div', 'sd-bar-track'), fill = mk('div', 'sd-bar-fill');
+        fill.style.width = Math.max(2, Math.min(100, Number(b.share) || 0)) + '%';
+        track.appendChild(fill); row.appendChild(track);
+        row.appendChild(mk('span', 'sd-bar-text', b.text));
+        bars.appendChild(row);
+      });
+      panel.appendChild(bars);
+    }
+    if (d.chips && d.chips.length) {
+      var chips = mk('div', 'sd-chips');
+      d.chips.forEach(function (c) { chips.appendChild(mk('span', 'sd-chip', c)); });
+      panel.appendChild(chips);
+    }
+    if (d.note) panel.appendChild(mk('p', 'sd-note', d.note));
+  }
+
+  function loadStageDetail(name, panel) {
+    if (stageCache[name]) { renderStageDetail(panel, stageCache[name]); return; }
+    panel.textContent = 'Loading\u2026';
+    fetch(STAGE_DETAIL_URL + '?name=' + encodeURIComponent(name), { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
+      .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+      .then(function (d) { stageCache[name] = d; renderStageDetail(panel, d); })
+      .catch(function () { panel.textContent = 'Could not load the details for this stage. Close it and try again.'; });
+  }
+
+  function enableStageDetails() {
+    var hint = mk('p', 'stage-hint', 'Click any stage to see what happened to your data.');
+    stageListEl.parentNode.insertBefore(hint, stageListEl);
+
+    stageListEl.querySelectorAll('li[data-stage]').forEach(function (li) {
+      var name = li.dataset.stage;
+      var head = mk('div', 'stage-head');
+      while (li.firstChild) head.appendChild(li.firstChild);
+      var chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      chevron.setAttribute('class', 'stage-chevron');
+      chevron.setAttribute('viewBox', '0 0 24 24');
+      chevron.setAttribute('fill', 'none');
+      chevron.setAttribute('stroke', 'currentColor');
+      chevron.setAttribute('stroke-width', '2.2');
+      chevron.setAttribute('stroke-linecap', 'round');
+      chevron.setAttribute('stroke-linejoin', 'round');
+      chevron.innerHTML = '<path d="M9 6l6 6-6 6"/>';
+      head.appendChild(chevron);
+      head.setAttribute('role', 'button');
+      head.setAttribute('tabindex', '0');
+      head.setAttribute('aria-expanded', 'false');
+      li.appendChild(head);
+
+      var panel = mk('div', 'stage-detail');
+      panel.hidden = true;
+      li.appendChild(panel);
+
+      function toggle() {
+        cancelRedirectCountdown();   // they are exploring: stop the automatic redirect
+        var open = li.classList.toggle('open');
+        head.setAttribute('aria-expanded', open ? 'true' : 'false');
+        panel.hidden = !open;
+        if (open) loadStageDetail(name, panel);
+      }
+      head.addEventListener('click', toggle);
+      head.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+      });
+    });
+  }
+
+  function poll() {
+    if (stopped) return;
+    if (Date.now() - startedAt > MAX_POLL_MS) {
+      // Hard stop. Whatever went wrong, the user gets a way out
+      // instead of a page that polls the server forever.
+      giveUp('Still waiting after ' + Math.round(MAX_POLL_MS / 60000) +
+             ' minutes — check the server console for the pipeline log.',
+             lastDashboardUrl || '/');
+      return;
+    }
+    // Cache-buster: some browsers will happily replay a cached
+    // response for a plain GET, which would freeze this page on an
+    // old "running" status forever.
+    fetch('{{ url_for("pipeline_status_json") }}?t=' + Date.now(),
+          { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        consecutiveErrors = 0;
+        if (data.dashboard_url) lastDashboardUrl = data.dashboard_url;
+
+        // Rendering is cosmetic: a failure in here must never stop the
+        // page from noticing that the run has finished (it used to
+        // throw into .catch() below, which just scheduled another
+        // poll -- so the run completed and the page polled on forever).
+        try {
+          renderStages(data.stages, data.status);
+        } catch (renderError) {
+          console.error('Progress render failed (ignored):', renderError);
+        }
+
+        if (data.status === 'completed') {
+          stopped = true;
+          progressFillEl.style.width = '100%';
+          bannerEl.className = 'banner completed';
+          bannerEl.textContent = '✓ Analysis complete — all 12 stages finished!';
+          stageCountEl.textContent = '';
+          successPopEl.className = 'success-pop show';
+          actionsEl.style.display = 'flex';
+          actionsEl.innerHTML =
+            '<a class="btn" href="' + data.dashboard_url + '">Go to dashboard</a>' +
+            '<span class="countdown-note" id="countdownNote">Continuing on its own in <span id="countdownSeconds">5</span>s' +
+            '<button type="button" id="stayHereBtn">stay here</button></span>';
+          document.getElementById('stayHereBtn').addEventListener('click', cancelRedirectCountdown);
+          startRedirectCountdown(data.dashboard_url, 5);
+          enableStageDetails();
+          return;
+        }
+
+        if (data.status === 'failed') {
+          stopped = true;
+          bannerEl.className = 'banner failed';
+          bannerEl.textContent = 'Analysis failed.';
+          if (data.error) {
+            errorEl.innerHTML = '<div class="error-detail"></div>';
+            errorEl.querySelector('.error-detail').textContent = data.error;
+          }
+          actionsEl.style.display = 'flex';
+          actionsEl.innerHTML = '<a class="btn" href="' + data.upload_url + '">Back to upload</a>';
+          return;
+        }
+
+        bannerEl.className = 'banner running';
+        bannerEl.textContent = 'Running…';
+        setTimeout(poll, POLL_MS);
+      })
+      .catch(function(fetchError) {
+        // The server may just be busy for a moment, so retry -- but
+        // not indefinitely, and not silently.
+        console.error('Status poll failed:', fetchError);
+        consecutiveErrors++;
+        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+          giveUp('Lost contact with the server — is app.py still running?',
+                 lastDashboardUrl || '/');
+          return;
+        }
+        setTimeout(poll, POLL_MS);
+      });
+  }
+
+  poll();
+</script>
+
+</body>
+</html>

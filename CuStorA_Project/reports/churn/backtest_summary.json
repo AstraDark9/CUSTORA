@@ -1,0 +1,174 @@
+{
+  "source_label": "UCI Online Retail (real UK retailer transactions, 2010-11)",
+  "data_kind": "real_transactions",
+  "window_days": 90,
+  "active_days": 90,
+  "n_cutoffs": 19,
+  "step_days": 14,
+  "split": {
+    "test_cutoff": "2011-09-10",
+    "validation_cutoff": "2011-06-04",
+    "validation_cutoffs": [
+      "2011-06-04",
+      "2011-05-21"
+    ],
+    "train_cutoffs": [
+      "2011-02-12",
+      "2011-01-29",
+      "2011-01-15",
+      "2011-01-01"
+    ],
+    "validation_embargo": "strict"
+  },
+  "rows": {
+    "train": 4681,
+    "validation": 3951,
+    "test": 1907,
+    "final_fit": 33071
+  },
+  "selected_model": "Logistic Regression",
+  "operating_threshold": 0.33,
+  "operating_threshold_rule": "balanced accuracy (Youden's J) on validation",
+  "validation": [
+    {
+      "Model": "Logistic Regression",
+      "ValROC-AUC": 0.764,
+      "ValPR-AUC": 0.6787,
+      "ValLift@10%": 1.801,
+      "ValBrier": 0.2032
+    },
+    {
+      "Model": "Gradient Boosting",
+      "ValROC-AUC": 0.7575,
+      "ValPR-AUC": 0.6621,
+      "ValLift@10%": 1.742,
+      "ValBrier": 0.2103
+    },
+    {
+      "Model": "Random Forest",
+      "ValROC-AUC": 0.7501,
+      "ValPR-AUC": 0.6626,
+      "ValLift@10%": 1.684,
+      "ValBrier": 0.2058
+    }
+  ],
+  "test": {
+    "Logistic Regression": {
+      "roc_auc": 0.7389,
+      "pr_auc": 0.5164,
+      "brier": 0.1835,
+      "accuracy": 0.645,
+      "balanced_accuracy": 0.6766,
+      "precision": 0.4563,
+      "recall": 0.7597,
+      "f1": 0.5702,
+      "lift_top10pct": 1.858,
+      "lift_top20pct": 1.77,
+      "rows": 1907,
+      "churn_rate": 0.3099,
+      "mean_predicted": 0.3343,
+      "flagged_share": 0.516,
+      "roc_auc_ci95": [
+        0.716,
+        0.7618
+      ]
+    }
+  },
+  "test_previous_model": {
+    "roc_auc": 0.736,
+    "pr_auc": 0.508,
+    "brier": 0.1911,
+    "accuracy": 0.6015,
+    "balanced_accuracy": 0.666,
+    "precision": 0.427,
+    "recall": 0.8359,
+    "f1": 0.5652,
+    "lift_top10pct": 1.909,
+    "lift_top20pct": 1.787,
+    "rows": 1907,
+    "churn_rate": 0.3099,
+    "mean_predicted": 0.3915,
+    "flagged_share": 0.6067,
+    "roc_auc_ci95": [
+      0.7151,
+      0.756
+    ]
+  },
+  "test_baseline_recency": {
+    "roc_auc": 0.5999,
+    "pr_auc": 0.3877,
+    "lift_top10pct": 1.436
+  },
+  "auc_gain_vs_previous_ci95": [
+    -0.0057,
+    0.0115
+  ],
+  "auc_gain_vs_baseline_ci95": [
+    0.1086,
+    0.1672
+  ],
+  "auc_gain_vs_previous": 0.0029,
+  "auc_gain_vs_baseline": 0.139,
+  "validation_threshold_metrics": {
+    "threshold": 0.33,
+    "youden_j": 0.3897,
+    "recall": 0.7539,
+    "precision": 0.6125,
+    "f1": 0.6759,
+    "balanced_accuracy": 0.6948
+  },
+  "features": [
+    "Recency",
+    "TenureDays",
+    "Frequency",
+    "Monetary",
+    "AverageOrderValue",
+    "Orders_14d",
+    "Orders_30d",
+    "Orders_Prev30d",
+    "Orders_90d",
+    "Orders_Prev90d",
+    "Orders_180d",
+    "Spend_90d",
+    "Spend_Prev90d",
+    "Spend_180d",
+    "FreqTrendRatio",
+    "SpendTrendRatio",
+    "RecentOrderShare",
+    "RecentSpendShare",
+    "ActiveWeeks_90d",
+    "AvgGapDays",
+    "MedianGapDays",
+    "GapStdDays",
+    "LastGapDays",
+    "MaxGapDays",
+    "RecencyOverGap",
+    "RecencyOverMedianGap",
+    "OverdueZ",
+    "LastOrderValue",
+    "LastOrderRatio",
+    "AvgLinesPerOrder",
+    "RecentAOVRatio",
+    "PAlive",
+    "ExpectedOrders",
+    "ReturnRate"
+  ],
+  "previous_features": [
+    "Recency",
+    "TenureDays",
+    "Frequency",
+    "Monetary",
+    "AverageOrderValue",
+    "Orders_30d",
+    "Orders_Prev30d",
+    "Orders_90d",
+    "Orders_Prev90d",
+    "Spend_90d",
+    "Spend_Prev90d",
+    "FreqTrendRatio",
+    "SpendTrendRatio",
+    "AvgGapDays",
+    "RecencyOverGap",
+    "ReturnRate"
+  ]
+}

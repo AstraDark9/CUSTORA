@@ -1,0 +1,114 @@
+{% macro money(v) -%}
+{%- if v >= 1000000 -%}{{ currency }}{{ "{:,.2f}".format(v/1000000) }}M
+{%- elif v >= 10000 -%}{{ currency }}{{ "{:,.1f}".format(v/1000) }}K
+{%- else -%}{{ currency }}{{ "{:,.0f}".format(v) }}{%- endif -%}
+{%- endmacro %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CuStorA — Reached customers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+  // Theme before first paint: saved choice, else the system preference.
+  (function(){
+    var saved = localStorage.getItem('custora-theme');
+    var theme = saved || (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    document.documentElement.setAttribute('data-theme', theme);
+  })();
+</script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/command.css') }}">
+<script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</head>
+<body class="has-sidebar">
+
+{% set active = 'reached' %}
+{% include "_sidebar.html" %}
+
+<div class="app-main">
+{% include "_topbar.html" %}
+
+<main class="page" id="main">
+  <div class="page-head">
+    <div>
+      <div class="eyebrow">Act</div>
+      <h1>Reached customers</h1>
+      <p class="reveal" tabindex="0">
+        <span class="r-short">Customers your team has already contacted.</span>
+        <span class="r-full">These customers are out of the action queue, the matrix, the planner and the call-list export, so nobody is chased twice. Moved one by mistake? Put them back with one click.</span>
+      </p>
+    </div>
+  </div>
+
+  <section class="kpis reached-kpis" aria-label="Reached so far">
+    <div class="card kpi-card">
+      <div class="kpi-label">Customers reached</div>
+      <div class="kpi-value">{{ "{:,}".format(rows|length) }}</div>
+      <div class="kpi-sub reveal" tabindex="0"><span class="r-short">of {{ "{:,}".format(total_customers) }} customers</span><span class="r-full">of {{ "{:,}".format(total_customers) }} customers in this analysis.</span></div>
+    </div>
+    <div class="card kpi-card">
+      <div class="kpi-label">Expected loss covered</div>
+      <div class="kpi-value">{{ money(covered) }}</div>
+      <div class="kpi-sub reveal" tabindex="0"><span class="r-short">at the time you reached them</span><span class="r-full">The combined expected loss of these customers when you marked them as reached.</span></div>
+    </div>
+  </section>
+
+  <section class="card table-card" style="padding:0;">
+    {% if rows %}
+    <table class="queue-table" id="reachedTable">
+      <thead><tr><th>Customer</th><th>Reached on</th><th>Risk then</th><th class="num">Revenue at stake</th><th class="num">Expected loss</th><th>Suggested action</th><th></th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr data-reached-row="{{ r.id }}">
+          <td>
+            {% if r.in_data %}<a class="cust-id" href="{{ url_for('customer_profile', customer_id=r.id) }}">{{ r.id }}</a>{% else %}<span class="cust-id">{{ r.id }}</span>{% endif %}
+            <div class="cust-state">{{ r.state or '' }}{% if r.state and r.segment %} · {% endif %}{{ r.segment or '' }}</div>
+          </td>
+          <td>{{ r.reached_at }}</td>
+          <td>{% if r.risk is not none %}<span class="risk-pct {{ 'risk' if r.risk >= 0.55 else ('watch' if r.risk >= 0.35 else 'healthy') }}">{{ "{:.0f}".format(r.risk * 100) }}%</span>{% else %}–{% endif %}</td>
+          <td class="num">{% if r.stake is not none %}{{ money(r.stake) }}{% else %}–{% endif %}</td>
+          <td class="num"><b>{% if r.loss is not none %}{{ money(r.loss) }}{% else %}–{% endif %}</b></td>
+          <td><div class="act-text">{{ r.action or '' }}</div></td>
+          <td><button type="button" class="btn btn-ghost undo-btn" data-undo="{{ r.id }}">Move back to queue</button></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="no-results" style="display:block;">
+      Nobody has been marked as reached yet. Open a customer in the <a href="{{ url_for('dashboard') }}"><u>action queue</u></a> and choose <strong>Mark as reached</strong> after you contact them.
+    </div>
+    {% endif %}
+  </section>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+</main>
+</div>
+
+<script>
+(function () {
+  var toast = document.getElementById('toast');
+  function say(msg) { toast.textContent = msg; toast.classList.add('show'); setTimeout(function () { toast.classList.remove('show'); }, 2400); }
+  document.querySelectorAll('[data-undo]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var id = btn.dataset.undo; btn.disabled = true;
+      fetch('/customers/' + encodeURIComponent(id) + '/unreached', { method: 'POST', headers: { 'Accept': 'application/json' } })
+        .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+        .then(function (d) {
+          var row = btn.closest('tr'); if (row) row.remove();
+          var badge = document.getElementById('reachedBadge');
+          if (badge) { badge.textContent = d.reached_count; badge.hidden = !d.reached_count; }
+          say('Customer ' + id + ' is back in the action queue.');
+          setTimeout(function () { location.reload(); }, 900);
+        })
+        .catch(function () { btn.disabled = false; say('Could not move this customer back. Please try again.'); });
+    });
+  });
+})();
+</script>
+</body>
+</html>

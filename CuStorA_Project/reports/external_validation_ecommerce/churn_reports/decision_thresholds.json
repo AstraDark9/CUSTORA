@@ -1,0 +1,10 @@
+{
+  "operating_threshold": 0.3,
+  "operating_threshold_selected_on": "validation",
+  "operating_threshold_validation_precision": 0.5586,
+  "operating_threshold_validation_recall": 0.6526,
+  "operating_threshold_validation_f1": 0.6019,
+  "medium_risk_threshold": 0.098,
+  "high_risk_threshold": 0.3864,
+  "risk_band_population": "train+validation (test set excluded)"
+}
